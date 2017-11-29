@@ -17,7 +17,7 @@ from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.ext import db
 from google.appengine.ext.db import Key
 import json
-
+import random
 # DWW
 import os
 from google.appengine.ext.webapp import template
@@ -61,6 +61,31 @@ class StoreAValue(webapp2.RequestHandler):
 	tag = self.request.get('tag')
 	value = self.request.get('value')
 	self.store_a_value(tag, value)
+
+class StoreATestValue(webapp2.RequestHandler):
+
+  def store_a_test_value(self, tag, value):
+  	store(tag, value)
+	# call trimdb if you want to limit the size of db
+  	# trimdb()
+	
+	## Send back a confirmation message.  The TinyWebDB component ignores
+	## the message (other than to note that it was received), but other
+	## components might use this.
+	result = ["STORED", tag, value]
+	
+	## When I first implemented this, I used  json.JSONEncoder().encode(value)
+	## rather than json.dump.  That didn't work: the component ended up
+	## seeing extra quotation marks.  Maybe someone can explain this to me.
+	
+	WriteToWeb2(self,tag,value)
+		
+
+  def get(self):
+	tmp = str(random.randrange(0,999999999999999999999999999999999999999))
+	tag = tmp
+	value = tmp
+	self.store_a_test_value(tag, value)
 
 class DeleteEntry(webapp2.RequestHandler):
 
@@ -120,6 +145,12 @@ def WriteToPhone(handler,tag,value):
 
 def WriteToWeb(handler, tag,value):
     entries = db.GqlQuery("SELECT * FROM StoredData ORDER BY date desc")
+    template_values={"result":  value,"entryList":entries}  
+    path = os.path.join(os.path.dirname(__file__),'index.html')
+    handler.response.out.write(template.render(path,template_values))
+
+def WriteToWeb2(handler, tag,value):
+    entries = ""
     template_values={"result":  value,"entryList":entries}  
     path = os.path.join(os.path.dirname(__file__),'index.html')
     handler.response.out.write(template.render(path,template_values))
@@ -212,7 +243,8 @@ def DeleteUrl(sUrl):
 app = webapp2.WSGIApplication ([('/', MainPage),
                            ('/getvalue', GetValueHandler),
 			   ('/storeavalue', StoreAValue),
-		           ('/deleteentry', DeleteEntry)
+		           ('/deleteentry', DeleteEntry),
+			   ('/test',StoreATestValue)			
 
                            ])
 
